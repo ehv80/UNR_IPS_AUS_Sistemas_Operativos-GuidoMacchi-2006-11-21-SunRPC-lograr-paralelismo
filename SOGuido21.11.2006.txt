@@ -1,0 +1,139 @@
+Mas violaciones al modello Request/Reply
+Ya vimos como implementar "paralelismo"
+	Servidor --->  cl1
+		|--->  cl2
+		|--->  cl3
+		|--->  cl4
+		
+Se podra hacer lo mismo pero al reves?
+	Cliente  --->  server1
+		|--->  server3
+		|--->  server2
+		|--->  server4
+	
+UN cliente en "paralelo" con varios servidores. No parece facil, pues crear N clientes es engorroso (se puede, pero la coordinacion es un problema; los threads no ayudan, pues las funcinoes generadas por rpcgen NO son reentrantes.
+
+Probemos con otra cosa: 
+	PARTIR un servicio en dos
+Queremos evitar el bloqueo...
+	Cliente		Servidor
+	   |		    .
+	   |		    .
+	   |		    .
+	    --------------->   \
+	   .		    |   ;
+	   .		    |   ;  Delta(t)
+	   .		    |   ; 
+	    <---------------   /
+	   |		    .
+	   |		    .
+	    
+ El expediente es tomar un servicio
+ 	T1 serv(T2)
+en 
+	void serv1(T2)
+	T1 serv2/void)
+que nos permite...
+	Cliente		Servidor
+	   |		    .
+	   |		    .
+	   |	 serv1    .
+	    --------------->   
+	    <---------------   (*1)
+	   |	            |   
+	   |		    |     
+	   |		    |    //Si la llamada eventualmente fallo, nos permitira simular este retorno (*1)
+	   |		    .    
+	   |		    .    
+	   |	 serv2	    .    
+	    --------------->   
+	    <---------------   
+	   |		    .
+	   |		    .
+	   
+Por supuesto, on es facil hacer serv1 en el servidor; el modelo de RPC dificulta mucho dejar cosas en background. Pero podemos "engañar" al cliente usando el timeOut de RPC. Antes de los detalles hagamos un servicio con el servidor.
+	program SER{
+		version VSER{
+			void s1(int)=1;
+			double s2(void)=2;
+		}=1;
+	}=0x30000003;
+
+En el server, (*) Estas son las lineas que he agregado
+
+(*)	#include <math.h>
+(*)	static double res;
+	
+	void * s1_svc(int arg1,...)
+	{
+		/*out your code*/
+(*)		sleep(120);	/*dormimos 2 minutos, simulando que nuestro calculo nos llevara mucho tiempo
+(*)		res=sqrt(arg1);
+		return result;
+		
+En el servidor2...
+	double * s2_serv(void arg...){
+		/*put your code here*/
+(*)		result = res;
+	}	
+	
+Compilen y ejecuten el servidor...
+No olvidar compilar con -lm para la sqrt()
+
+Pasemos al cliente 
+En main, cambien...
+(*)	#include <stdlib.h>
+	int main(...
+	{
+	
+	
+		func (host, atoi(argv[2]));  (*) Agregamos el 2do argumento
+		return 0;
+	}
+Usaremos una "funcion" (una macro) llamada clnt_control (ó CLNT_CONTROL); 
+Su prototipo es:
+	clnt_control(clnt *, int cmd, void *in)
+Acepta varios comandos (ver man 8 rpc)
+entre estos
+	CLGET_TIMEOUT (de el timeout actual)
+	CLSET_TIMEOUT (para otro timeout)
+Como in toma en puntero a struct timeeval, que tiene dos miembros
+	unsigned tv_sec, /*segundos*/
+		tv_usec; /*microsegundos*/
+
+Sigamos alterando el cliente...
+(*)	#include <unistd.h>
+	void
+	userk1(char *host, int nro)  //(*) Agregamos 2do argumento
+	{
+		CLNT *clnt;
+		struct timeeval t1,t2;
+		etc...
+		...
+(*)		clnt_control(clnt, CLGET_TIMEOUT, &t1);
+(*)		t1.tv_sec=t2.tv_usec=0;  /*timeout nulo*/
+(*)		clnt_control(clnt, CLSET_TIMEOUT, &t2);
+(*)		s1.args=nro;
+		
+		s1_clnt(...)
+		
+		/*restauramos el timeout*/
+		
+		clnt_control(clnt, CLSET_TIMEOUT, &t1);
+		printf("tres minutos al dope...\n");
+		sleep(180);
+		result--- = s2_2(...)}
+		...
+		
+(*)		printf("resultado");
+		(*')
+		
+
+(*')
+
+/*restauramos el timeout*/
+clnt_control(clnt		
+		
+		
+		
+		
